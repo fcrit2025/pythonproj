@@ -1,0 +1,15 @@
+{
+    "name": "TensorFlow Python",
+    "image": "mcr.microsoft.com/devcontainers/python:3.9",
+    "features": {
+        "ghcr.io/devcontainers/features/gpu:1": {}
+    },
+    "postCreateCommand": "pip install --upgrade pip && pip install tensorflow pandas numpy matplotlib",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python"
+            ]
+        }
+    }
+}

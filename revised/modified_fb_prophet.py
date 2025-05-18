@@ -16,6 +16,7 @@ from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import GRU, Dense, Dropout
+# For TensorFlow 2.x (modern versions)
 from tensorflow.keras.optimizers import Adam
 from sklearn.metrics import mean_absolute_error
 from pandas.tseries.holiday import AbstractHolidayCalendar, Holiday

@@ -35,7 +35,7 @@ def get_stock_data(ticker, start, end):
 
 
 # Function to fetch news
-NEWS_API_KEY = "eb59edfd3de9450f9b11df2e69591e30" # 563215a35c1a47968f46271e04083ea3
+NEWS_API_KEY = "563215a35c1a47968f46271e04083ea3" # 563215a35c1a47968f46271e04083ea3   eb59edfd3de9450f9b11df2e69591e30
 NEWS_API_URL = "https://newsapi.org/v2/everything"
 
 def get_news(stock_symbol):
