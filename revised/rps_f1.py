@@ -357,19 +357,22 @@ def hybrid_predict_prices(models, scaler, last_known_data, features, days=10, we
             
             # 5. Update simulated data for next prediction
             new_row = {
-                'Open': new_close * (0.998 + np.random.uniform(-0.002, 0.002)),
-                'High': new_close * (1 + np.random.uniform(0, 0.01)),
-                'Low': new_close * (1 - np.random.uniform(0, 0.01)),
-                'Close': new_close,
-                'Volume': current_data['Volume'].iloc[-1] * (0.95 + np.random.uniform(-0.05, 0.05)),
-                'Sentiment': current_data['Sentiment'].iloc[-1] * (0.95 + np.random.uniform(-0.1, 0.1)),
-                '5D_MA': current_data['5D_MA'].iloc[-1] * (1 + np.random.uniform(-0.005, 0.005)),
-                '20D_MA': current_data['20D_MA'].iloc[-1] * (1 + np.random.uniform(-0.002, 0.002)),
-                'MA_Ratio': current_data['MA_Ratio'].iloc[-1] * (1 + np.random.uniform(-0.01, 0.01)),
-                '5D_Volatility': recent_volatility * (1 + np.random.uniform(-0.1, 0.1)),
-                'Volume_MA5': current_data['Volume_MA5'].iloc[-1] * (1 + np.random.uniform(-0.05, 0.05)),
-                'Volume_Ratio': current_data['Volume_Ratio'].iloc[-1] * (1 + np.random.uniform(-0.1, 0.1))
-            }
+        'Open': new_close * 0.998,  # Typical open slightly below previous close
+        'High': new_close * 1.005,  # Assume 0.5% higher than close
+        'Low': new_close * 0.995,   # Assume 0.5% lower than close
+        'Close': new_close,
+        'Volume': current_data['Volume'].iloc[-1],  # Keep same volume initially
+        'Sentiment': current_data['Sentiment'].iloc[-1],  # Carry forward sentiment
+        '5D_MA': (current_data['5D_MA'].iloc[-1] * 4 + new_close) / 5,  # Update MA
+        '20D_MA': (current_data['20D_MA'].iloc[-1] * 19 + new_close) / 20,
+        'MA_Ratio': ((current_data['5D_MA'].iloc[-1] * 4 + new_close) / 5) / 
+                ((current_data['20D_MA'].iloc[-1] * 19 + new_close) / 20),
+        '5D_Volatility': np.sqrt(((current_data['Returns'].iloc[-4:]**2).sum() + 
+                             ((new_close - current_data['Close'].iloc[-1])/current_data['Close'].iloc[-1])**2)/5),
+        'Volume_MA5': (current_data['Volume_MA5'].iloc[-1] * 4 + current_data['Volume'].iloc[-1]) / 5,
+        'Volume_Ratio': current_data['Volume'].iloc[-1] / 
+                   ((current_data['Volume_MA5'].iloc[-1] * 4 + current_data['Volume'].iloc[-1]) / 5)
+}
             current_data = pd.concat([current_data.iloc[1:], pd.DataFrame(new_row, index=[date])])
         
         # Calculate initial daily changes
@@ -407,19 +410,22 @@ def generate_recommendation(predicted_prices, current_price, accuracy, avg_senti
     avg_prediction = predicted_prices['Predicted Price'].mean()
     price_change = ((avg_prediction - current_price) / current_price) * 100
     
-    # Incorporate sentiment into recommendation
-    sentiment_factor = 1 + (avg_sentiment * 0.5)  # Amplify sentiment impact
+    # Enhanced sentiment factor with confidence scaling
+    sentiment_factor = 1 + (avg_sentiment * (accuracy/100))  # Scale sentiment impact by accuracy
+    
     adjusted_change = price_change * sentiment_factor
     
-    if adjusted_change > 7 and accuracy > 72:
+    # Modified thresholds with confidence weighting
+    confidence_weight = accuracy / 100
+    if adjusted_change > 7 * confidence_weight and accuracy > 72:
         return "STRONG BUY", "High confidence in significant price increase"
-    elif adjusted_change > 3 and accuracy > 65:
+    elif adjusted_change > 3 * confidence_weight and accuracy > 65:
         return "BUY", "Good confidence in moderate price increase"
     elif adjusted_change > 0 and accuracy > 60:
         return "HOLD (Positive)", "Potential for slight growth"
-    elif adjusted_change < -7 and accuracy > 72:
+    elif adjusted_change < -7 * confidence_weight and accuracy > 72:
         return "STRONG SELL", "High confidence in significant price drop"
-    elif adjusted_change < -3 and accuracy > 65:
+    elif adjusted_change < -3 * confidence_weight and accuracy > 65:
         return "SELL", "Good confidence in moderate price drop"
     elif adjusted_change < 0 and accuracy > 60:
         return "HOLD (Caution)", "Potential for slight decline"
@@ -655,14 +661,20 @@ if st.sidebar.button("Analyze"):
 
         explanation = f"""
         Our analysis of {selected_stock} reveals the following key insights:
-        
-        1. **Price Movement**: The stock is currently trading at ₹{current_price:.2f}. Based on our model's analysis (which has {accuracy:.1f}% confidence), we expect {'an upward trend' if avg_sentiment > 0 or df_stock['MA_Ratio'].iloc[-1] > 1 else 'a downward trend' if avg_sentiment < 0 or df_stock['MA_Ratio'].iloc[-1] < 1 else 'relative stability'} in the coming days.
-        
+
+        1. **Price Movement**: The stock is currently trading at ₹{current_price:.2f}. 
+        - Model confidence: {accuracy:.1f}%
+        - Predicted trend: {'upward' if avg_prediction > current_price else 'downward'}
+        - Expected change: {abs(price_change):.2f}% ({'+' if price_change > 0 else ''}{price_change:.2f}%)
+
         2. **Technical Indicators**:
-           - The stock is currently trading {'above' if df_stock['MA_Ratio'].iloc[-1] > 1 else 'below'} its 20-day moving average
-           - Recent volatility is {'high' if df_stock['5D_Volatility'].iloc[-1] > 0.02 else 'moderate' if df_stock['5D_Volatility'].iloc[-1] > 0.01 else 'low'}
-           - Volume trends show {'increasing' if df_stock['Volume_Ratio'].iloc[-1] > 1 else 'decreasing' if df_stock['Volume_Ratio'].iloc[-1] < 1 else 'stable'} trading activity
-        
+        - MA Position: {'Above' if df_stock['MA_Ratio'].iloc[-1] > 1 else 'Below'} 20-day MA
+        - Volatility: {'High' if df_stock['5D_Volatility'].iloc[-1] > 0.02 else 'Moderate'}
+        - Volume Trend: {'Increasing' if df_stock['Volume_Ratio'].iloc[-1] > 1 else 'Decreasing'}
+
+        3. **Market Sentiment**: 
+        - Current sentiment: {'Positive' if avg_sentiment > 0.2 else 'Negative' if avg_sentiment < -0.2 else 'Neutral'}
+        - Sentiment trend: {'Improving' if df_stock['Sentiment'].iloc[-1] > df_stock['Sentiment'].mean() else 'Declining'}
         {sentiment_analysis_part}
         
         {conclusion}
