@@ -84,7 +84,7 @@ def get_stock_info(ticker):
     }
 
 # News API
-NEWS_API_KEY = "563215a35c1a47968f46271e04083ea3"
+NEWS_API_KEY = "563215a35c1a47968f46271e04083ea3"  #P8:563215a35c1a47968f46271e04083ea3  P6:2c21d58c03d34b2aa0509ef13f331e6d   my:eb59edfd3de9450f9b11df2e69591e30
 NEWS_API_URL = "https://newsapi.org/v2/everything"
 
 def get_news(stock_symbol):
