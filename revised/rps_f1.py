@@ -22,6 +22,7 @@ from tensorflow.keras.optimizers import Adam
 from sklearn.metrics import mean_absolute_error
 from pandas.tseries.holiday import AbstractHolidayCalendar, Holiday
 from pandas.tseries.offsets import CustomBusinessDay
+from keras import Input
 
 # Custom Indian holiday calendar
 class IndiaHolidayCalendar(AbstractHolidayCalendar):
@@ -643,6 +644,20 @@ if st.sidebar.button("Analyze"):
         st.subheader("AI Analysis Conclusion")
         current_price = df_stock['Close'].iloc[-1]
         avg_sentiment = df_stock['Sentiment'].mean() if 'Sentiment' in df_stock else 0
+        
+        # Calculate avg_prediction from model results
+        if 'Predicted' in df_stock.columns:
+            # Use the predictions from the trained model
+            valid_predictions = df_stock['Predicted'].dropna()
+            if len(valid_predictions) > 0:
+                avg_prediction = current_price * (1 + valid_predictions.mean())
+            else:
+                avg_prediction = current_price  # Fallback if no predictions
+        else:
+            avg_prediction = current_price  # Fallback if no prediction column
+        
+        # Calculate price change
+        price_change = ((avg_prediction - current_price) / current_price) * 100
         
         if daily_sentiment:
             sentiment_analysis_part = f"""
