@@ -1,28 +1,4 @@
-import streamlit as st
-import yfinance as yf
-import pandas as pd
-import numpy as np
-import requests
-import datetime
-import re
-import os
-import xgboost as xgb
-import shap
-import plotly.graph_objects as go
-from prophet import Prophet
-from transformers import pipeline
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.metrics import mean_absolute_error, mean_squared_error
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import GRU, Dense, Dropout
-# For TensorFlow 2.x (modern versions)
-from tensorflow.keras.optimizers import Adam
-from sklearn.metrics import mean_absolute_error
-from pandas.tseries.holiday import AbstractHolidayCalendar, Holiday
-from pandas.tseries.offsets import CustomBusinessDay
-from keras import Input
+
 
 # Custom Indian holiday calendar
 class IndiaHolidayCalendar(AbstractHolidayCalendar):
